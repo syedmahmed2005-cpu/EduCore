@@ -2,46 +2,57 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+
     <script>
-  (function () {
-    try {
-      var savedTheme =
-        localStorage.getItem("educore-theme") || "system";
+      (function () {
+        try {
+          var savedTheme =
+            localStorage.getItem("educore-theme") || "system";
 
-      var useDarkMode =
-        savedTheme === "dark" ||
-        (savedTheme === "system" &&
-          window.matchMedia(
+          var useDarkMode =
+            savedTheme === "dark" ||
+            (savedTheme === "system" &&
+              window.matchMedia(
+                "(prefers-color-scheme: dark)"
+              ).matches);
+
+          document.documentElement.classList.toggle(
+            "dark",
+            useDarkMode
+          );
+
+          document.documentElement.style.colorScheme =
+            useDarkMode ? "dark" : "light";
+        } catch (error) {
+          var systemUsesDarkMode = window.matchMedia(
             "(prefers-color-scheme: dark)"
-          ).matches);
+          ).matches;
 
-      document.documentElement.classList.toggle(
-        "dark",
-        useDarkMode
-      );
+          document.documentElement.classList.toggle(
+            "dark",
+            systemUsesDarkMode
+          );
 
-      document.documentElement.style.colorScheme =
-        useDarkMode ? "dark" : "light";
-    } catch (error) {
-      var systemUsesDarkMode = window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      ).matches;
+          document.documentElement.style.colorScheme =
+            systemUsesDarkMode ? "dark" : "light";
+        }
+      })();
+    </script>
 
-      document.documentElement.classList.toggle(
-        "dark",
-        systemUsesDarkMode
-      );
+    <link
+      rel="icon"
+      type="image/jpeg"
+      href="/educore-icon.jpg?v=1"
+    />
 
-      document.documentElement.style.colorScheme =
-        systemUsesDarkMode ? "dark" : "light";
-    }
-  })();
-</script>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
 
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>student-management-react</title>
+    <title>EduCore</title>
   </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
