@@ -7,6 +7,10 @@ const User = require("../models/User");
 const authenticate = require("../middleware/authMiddleware");
 
 const router = express.Router();
+const demoAccounts = {
+  student: "student1@sms.com",
+  faculty: "ahmed.khan@sms.com",
+};
 
 // REGISTER
 router.post("/register", async function (req, res) {
@@ -89,7 +93,80 @@ router.post("/register", async function (req, res) {
     });
   }
 });
+// DEMO LOGIN
+router.post("/demo-login", async function (req, res) {
+  try {
+    const { role } = req.body;
+    const demoEmail = demoAccounts[role];
 
+    if (!demoEmail) {
+      return res.status(400).json({
+        message: "Select a valid demo role",
+      });
+    }
+
+    if (!process.env.JWT_SECRET) {
+      return res.status(500).json({
+        message: "Server configuration error",
+      });
+    }
+
+    const user = await User.findOne({
+      email: demoEmail,
+      role,
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        message: "Demo account is currently unavailable",
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        role: user.role,
+        isDemo: true,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "1h",
+      }
+    );
+
+    const isProduction =
+      process.env.NODE_ENV === "production";
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax",
+      path: "/",
+      maxAge: 60 * 60 * 1000,
+    });
+
+    res.json({
+      message: "Demo login successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        studentId: user.studentId,
+        facultyId: user.facultyId,
+        themePreference:
+          user.themePreference || "system",
+        isDemo: true,
+      },
+    });
+  } catch (error) {
+    console.log("Demo login error:", error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+});
 
 // LOGIN
 router.post("/login", async function (req, res) {
@@ -110,9 +187,17 @@ router.post("/login", async function (req, res) {
       });
     }
 
-    const user = await User.findOne({
-      email: email.toLowerCase().trim()
-    });
+    const normalizedEmail = email.toLowerCase().trim();
+
+if (Object.values(demoAccounts).includes(normalizedEmail)) {
+  return res.status(403).json({
+    message: "Please use the demo access buttons",
+  });
+}
+
+const user = await User.findOne({
+  email: normalizedEmail,
+});
 
     if (!user) {
       return res.status(401).json({

@@ -24,9 +24,27 @@ const authenticate = (req, res, next) => {
       process.env.JWT_SECRET
     );
 
-    req.user = decoded;
+    const readOnlyMethods = ["GET", "HEAD", "OPTIONS"];
 
-    next();
+const isThemePreferenceUpdate =
+  req.method === "PUT" &&
+  req.baseUrl === "/api/auth" &&
+  req.path === "/theme-preference";
+
+if (
+  decoded.isDemo &&
+  !readOnlyMethods.includes(req.method) &&
+  !isThemePreferenceUpdate
+) {
+  return res.status(403).json({
+    message:
+      "Demo accounts are read-only. Sign in with a regular account to make changes.",
+  });
+}
+
+req.user = decoded;
+
+next();
 
   } catch (error) {
     console.log("Authentication error:", error.message);

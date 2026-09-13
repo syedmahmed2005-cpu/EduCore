@@ -46,6 +46,39 @@ function Login({ setUser }) {
     }
   }
 
+  async function handleDemoLogin(role) {
+  setError("");
+  setLoading(true);
+
+  try {
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/auth/demo-login`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({ role }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message || "Demo login failed"
+      );
+    }
+
+    setUser(data.user);
+    navigate("/dashboard");
+  } catch (error) {
+    setError(error.message);
+  } finally {
+    setLoading(false);
+  }
+}
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-app-background px-4 py-10 transition-colors duration-200">
       <div
@@ -135,6 +168,43 @@ function Login({ setUser }) {
               {loading ? "Signing in..." : "Sign In"}
             </button>
           </form>
+          <div className="my-6 flex items-center gap-3">
+  <div className="h-px flex-1 bg-app-border" />
+
+  <span className="text-xs font-semibold uppercase tracking-wider text-app-text-muted">
+    Demo Access
+  </span>
+
+  <div className="h-px flex-1 bg-app-border" />
+</div>
+
+<p className="mb-4 text-center text-sm text-app-text-muted">
+  Explore EduCore instantly using sample data.
+</p>
+
+<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+  <button
+    type="button"
+    onClick={() => handleDemoLogin("student")}
+    disabled={loading}
+    className="rounded-xl border border-green-600 bg-green-50 px-4 py-3 font-semibold text-green-700 transition hover:bg-green-100 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-green-700 dark:bg-green-950/40 dark:text-green-300 dark:hover:bg-green-950/70"
+  >
+    Student Demo
+  </button>
+
+  <button
+    type="button"
+    onClick={() => handleDemoLogin("faculty")}
+    disabled={loading}
+    className="rounded-xl border border-green-600 bg-green-50 px-4 py-3 font-semibold text-green-700 transition hover:bg-green-100 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 dark:border-green-700 dark:bg-green-950/40 dark:text-green-300 dark:hover:bg-green-950/70"
+  >
+    Faculty Demo
+  </button>
+</div>
+
+<p className="mt-3 text-center text-xs text-app-text-muted">
+  Demo accounts provide read-only access.
+</p>
         </div>
 
         <p className="mt-6 text-center text-sm text-app-text-muted">
