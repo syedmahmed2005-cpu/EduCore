@@ -16,7 +16,10 @@ const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.FRONTEND_URL,
+  "https://www.myeducore.app",
+  "https://myeducore.app",
+  "https://student-manegement-system-full-stac.vercel.app",
+   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
 app.use(
