@@ -40,6 +40,17 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+
+    // Forgot-password flow: only a SHA-256 hash of the emailed token is stored
+    passwordResetToken: {
+      type: String,
+      default: null,
+    },
+
+    passwordResetExpires: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
