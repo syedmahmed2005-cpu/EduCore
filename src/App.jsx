@@ -28,6 +28,8 @@ import StudentAttendance from "./pages/StudentAttendance.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import RoleRoute from "./components/RoleRoute.jsx";
 import Login from "./pages/Login.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import Announcements from "./pages/Announcements.jsx";
 import Settings from "./pages/Settings.jsx";
 import Grades from "./pages/Grades.jsx";
@@ -154,6 +156,16 @@ function AppContent() {
         <Route
           path="/login"
           element={<Login setUser={setUser} />}
+        />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
         />
 
         {/* PROTECTED ROUTES */}

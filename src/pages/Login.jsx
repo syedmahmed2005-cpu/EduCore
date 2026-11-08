@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 function Login({ setUser }) {
   const navigate = useNavigate();
@@ -143,9 +143,18 @@ function Login({ setUser }) {
             </div>
 
             <div className="mb-6">
-              <label className="mb-2 block font-semibold text-app-text">
-                Password
-              </label>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block font-semibold text-app-text">
+                  Password
+                </label>
+
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-semibold text-green-700 hover:underline dark:text-green-400"
+                >
+                  Forgot password?
+                </Link>
+              </div>
 
               <input
                 type="password"

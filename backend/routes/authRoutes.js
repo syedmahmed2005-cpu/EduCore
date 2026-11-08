@@ -2,7 +2,9 @@
 const express = require("express");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const User = require("../models/User");
+const { sendPasswordResetEmail } = require("../services/emailService");
 
 const authenticate = require("../middleware/authMiddleware");
 
@@ -394,6 +396,151 @@ router.put("/change-password", authenticate, async function (req, res) {
 
     res.status(500).json({
       message: "Server error"
+    });
+  }
+});
+
+// FORGOT PASSWORD
+const RESET_TOKEN_TTL_MINUTES = 15;
+const RESET_REQUEST_COOLDOWN_MS = 60 * 1000;
+const MIN_PASSWORD_LENGTH = 6;
+
+const forgotPasswordResponse = {
+  message:
+    "If an account exists for that email, a password reset link has been sent.",
+};
+
+function hashResetToken(token) {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+function getFrontendUrl() {
+  if (process.env.FRONTEND_URL) {
+    return process.env.FRONTEND_URL.replace(/\/+$/, "");
+  }
+
+  return process.env.NODE_ENV === "production"
+    ? "https://myeducore.app"
+    : "http://localhost:5173";
+}
+
+router.post("/forgot-password", async function (req, res) {
+  try {
+    const { email } = req.body;
+
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({
+        message: "Email is required",
+      });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Demo accounts are shared and read-only; never allow resetting them
+    if (Object.values(demoAccounts).includes(normalizedEmail)) {
+      return res.json(forgotPasswordResponse);
+    }
+
+    const user = await User.findOne({ email: normalizedEmail });
+
+    // Same response whether or not the account exists, so emails can't be probed
+    if (!user) {
+      return res.json(forgotPasswordResponse);
+    }
+
+    // Don't send another email if one was sent less than a minute ago
+    const ttlMs = RESET_TOKEN_TTL_MINUTES * 60 * 1000;
+    if (
+      user.passwordResetExpires &&
+      user.passwordResetExpires.getTime() - ttlMs + RESET_REQUEST_COOLDOWN_MS >
+        Date.now()
+    ) {
+      return res.json(forgotPasswordResponse);
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    user.passwordResetToken = hashResetToken(resetToken);
+    user.passwordResetExpires = new Date(Date.now() + ttlMs);
+    await user.save();
+
+    const resetUrl = `${getFrontendUrl()}/reset-password?token=${resetToken}`;
+
+    try {
+      await sendPasswordResetEmail(
+        user.email,
+        user.name,
+        resetUrl,
+        RESET_TOKEN_TTL_MINUTES
+      );
+    } catch (emailError) {
+      console.log("Password reset email error:", emailError.message);
+
+      user.passwordResetToken = null;
+      user.passwordResetExpires = null;
+      await user.save();
+    }
+
+    res.json(forgotPasswordResponse);
+  } catch (error) {
+    console.log("Forgot password error:", error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+});
+
+// RESET PASSWORD (from emailed link)
+router.post("/reset-password", async function (req, res) {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || typeof token !== "string" || !password) {
+      return res.status(400).json({
+        message: "Reset token and new password are required",
+      });
+    }
+
+    if (typeof password !== "string" || password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({
+        message: `New password must be at least ${MIN_PASSWORD_LENGTH} characters`,
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Atomically consume the token so a link can only ever be used once
+    const user = await User.findOneAndUpdate(
+      {
+        passwordResetToken: hashResetToken(token),
+        passwordResetExpires: { $gt: new Date() },
+        email: { $nin: Object.values(demoAccounts) },
+      },
+      {
+        $set: {
+          password: hashedPassword,
+          passwordResetToken: null,
+          passwordResetExpires: null,
+        },
+      }
+    );
+
+    if (!user) {
+      return res.status(400).json({
+        message:
+          "This reset link is invalid or has expired. Please request a new one.",
+      });
+    }
+
+    res.json({
+      message: "Password reset successfully. You can now sign in.",
+    });
+  } catch (error) {
+    console.log("Reset password error:", error);
+
+    res.status(500).json({
+      message: "Server error",
     });
   }
 });
